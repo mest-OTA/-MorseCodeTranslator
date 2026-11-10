@@ -1,0 +1,15 @@
+{
+	"contentrating" : "Everyone",
+	"description" : "Morse Code Workbench live wallpaper. Start D:\\MorseCodeTranslator\\start.bat first, then apply this wallpaper. Shows the latest Chinese / English / Morse translation with a blinking telegraph lamp.",
+	"file" : "index.html",
+	"general" :
+	{
+		"properties" : {}
+	},
+	"preview" : "preview.png",
+	"tags" : [ "Morse", "Utility", "Abstract" ],
+	"title" : "Morse Code Workbench",
+	"type" : "web",
+	"version" : 1,
+	"visibility" : "private"
+}

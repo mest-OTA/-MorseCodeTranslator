@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>摩斯电码工作台 · Morse Code Workbench</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 小红车动态壁纸层（与第一个任务的 slWallpaperLayer 一致，固定铺满、默认不吃鼠标事件） -->
+<div id="slWallpaperLayer" hidden></div>
+
+<div id="appShell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <div class="brand-text">
+        <h1>摩斯电码工作台</h1>
+        <p>中文 <em>⇄</em> English <em>⇄</em> Morse Code</p>
+      </div>
+    </div>
+    <div class="pills">
+      <span class="pill" id="enginePill"><i class="dot"></i>翻译引擎检测中</span>
+      <span class="pill" id="wePill"><i class="dot"></i>小红车检测中</span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="translate" role="tab">翻译工作台</button>
+    <button class="tab" data-tab="table" role="tab">电码对照表</button>
+    <button class="tab" data-tab="wallpaper" role="tab">动态壁纸</button>
+    <div class="tabs-right"><span class="hint">本地服务 127.0.0.1 · 壁纸文件不出本机</span></div>
+  </nav>
+
+  <main>
+    <!-- ============ TRANSLATE ============ -->
+    <section class="page active" id="page-translate">
+      <div class="dirbar">
+        <span class="dirbar-label">翻译方向</span>
+        <div class="segmented" id="dirSwitch">
+          <button class="seg active" data-dir="zh2morse">中文 <b>→</b> English <b>→</b> 摩斯</button>
+          <button class="seg" data-dir="morse2zh">摩斯 <b>→</b> English <b>→</b> 中文</button>
+        </div>
+        <button class="link-btn" id="swapBtn">交换方向</button>
+      </div>
+
+      <div class="translate-grid">
+        <div class="card input-card">
+          <div class="card-head">
+            <h2 id="inputTitle">输入中文</h2>
+            <span class="counter" id="charCount">0 字</span>
+          </div>
+          <textarea id="inputText" spellcheck="false" placeholder="在这里输入要发送的中文内容…">你好，世界</textarea>
+          <div class="samples" id="samples">
+            <span class="samples-label">试试：</span>
+            <button class="chip" data-sample="你好，世界">你好，世界</button>
+            <button class="chip" data-sample="紧急求救，请立即回复">紧急求救</button>
+            <button class="chip" data-sample="今天天气很好，我们一起去海边">今天天气很好</button>
+            <button class="chip" data-sample="晚安，明天见">晚安</button>
+          </div>
+          <div class="actions">
+            <button class="btn primary" id="runBtn">开始翻译 <span class="key">Ctrl+Enter</span></button>
+            <button class="btn" id="clearBtn">清空</button>
+          </div>
+          <div class="notice" id="engineNotice">正在检测翻译通道…</div>
+          <label class="offline-toggle"><input type="checkbox" id="offlineOnly"><span>仅离线翻译</span><small>勾选后文字完全不联网，使用内置词典（译文质量有限）</small></label>
+        </div>
+
+        <div class="card pipeline-card">
+          <div class="card-head"><h2>翻译链路</h2><span class="counter" id="pipelineTime"></span></div>
+
+          <div class="step">
+            <div class="step-head"><span class="step-no">01</span><span class="step-name" id="step1Name">原文 · 中文</span><button class="mini" data-copy="step1Text">复制</button></div>
+            <div class="step-body" id="step1Text">—</div>
+          </div>
+          <div class="step-arrow"><span></span><b>翻译</b><span></span></div>
+
+          <div class="step">
+            <div class="step-head"><span class="step-no">02</span><span class="step-name">中间层 · English</span><button class="mini" data-copy="step2Text">复制</button></div>
+            <div class="step-body en" id="step2Text">—</div>
+          </div>
+          <div class="step-arrow"><span></span><b id="arrow2Label">编码</b><span></span></div>
+
+          <div class="step">
+            <div class="step-head"><span class="step-no">03</span><span class="step-name" id="step3Name">结果 · 摩斯电码</span><button class="mini" data-copy="step3Text">复制</button></div>
+            <div class="step-body" id="step3Text">—</div>
+          </div>
+
+          <div class="warn" id="warnBox" hidden></div>
+        </div>
+      </div>
+
+      <div class="card morse-card">
+        <div class="card-head">
+          <h2>电码视图 <span class="sub">点 = ·　划 = −　字母间隔 = 空格　单词间隔 = /</span></h2>
+          <div class="morse-tools">
+            <label class="slider-label">速度 <input type="range" id="wpm" min="5" max="40" value="20"><b id="wpmVal">20 WPM</b></label>
+            <button class="btn small" id="playBtn">播放电码声</button>
+            <button class="btn small" id="stopBtn" disabled>停止</button>
+          </div>
+        </div>
+        <div class="lamp-row"><div class="lamp" id="lamp"></div><span id="playStatus">待机</span></div>
+        <div class="morse-output" id="morseOutput">等待翻译…</div>
+        <div class="morse-bars" id="morseBars"></div>
+      </div>
+
+      <div class="explain">
+        <div class="explain-head">关于「摩斯电码只能表示英语吗？」</div>
+        <p>摩斯电码本身是一套<strong>字符编码</strong>，标准码表只有 A–Z、0–9 和少量标点，并没有汉字。所以中文要走进摩斯电码，有两条路：</p>
+        <ul>
+          <li><b>语义翻译（本软件采用）</b>：中文 → 英文 → 摩斯；反向则摩斯 → 英文 → 中文。好处是通用、任何电台都读得懂；代价是往返之后拿回的是「意思」，不是原来那句中文的原字。</li>
+          <li><b>中文电码（历史方案）</b>：每个汉字对应一个四位数字电报码（如「中」= 0022），再把数字用摩斯码发出去。可以逐字还原原文，但需要收发双方都有一本电码本，且码表不通用。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ TABLE ============ -->
+    <section class="page" id="page-table">
+      <div class="card">
+        <div class="card-head"><h2>国际摩斯电码对照表</h2><span class="counter">点击任意一行可填入输入框</span></div>
+        <div class="table-groups" id="codeTable"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>常用缩语 / prosigns</h2></div>
+        <div class="prosigns" id="prosigns"></div>
+      </div>
+    </section>
+
+    <!-- ============ WALLPAPER ENGINE PLAYER ============ -->
+    <section class="page" id="page-wallpaper">
+      <div class="card">
+        <div class="card-head">
+          <h2>小红车动态壁纸</h2>
+          <div class="filter-row">
+            <span class="counter" id="wpStatusTag">正在读取壁纸…</span>
+            <button class="btn small" id="btnWpScan">重新扫描本机小红车</button>
+            <button class="btn small" id="btnWpCrisp">高清模式</button>
+            <button class="btn small" id="btnWpReset">恢复默认</button>
+          </div>
+        </div>
+        <div class="wp-current" id="wpCurrent">当前：未启用。选一款壁纸就会变成软件背景。</div>
+        <div class="wp-controls">
+          <label class="chk"><input type="checkbox" id="wpEnabled"> 启用壁纸</label>
+          <label class="chk"><input type="checkbox" id="wpCrisp" checked> 高清模式（壁纸不压暗、不模糊）</label>
+          <label>界面不透明度 <input type="range" id="wpUi" min="0" max="100" value="16"></label>
+          <label>压暗 <input type="range" id="wpDim" min="0" max="80" value="0"></label>
+          <label>模糊 <input type="range" id="wpBlur" min="0" max="20" value="0"></label>
+          <label>音量 <input type="range" id="wpVolume" min="0" max="100" value="50"></label>
+          <label>填充 <select id="wpFit"><option value="cover">铺满 cover</option><option value="contain">完整 contain</option></select></label>
+        </div>
+        <div class="wp-btns">
+          <button class="btn primary" id="btnWpFocus">沉浸查看（Esc 返回）</button>
+          <button class="btn primary" id="btnWpTouch">触摸 / 互动模式</button>
+          <button class="btn" id="btnWpOff">关闭壁纸</button>
+        </div>
+        <div class="fine" id="wpPathHint"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>自定义网页壁纸</h2><span class="counter">任意网址或本地 HTML，同样支持触摸系统</span></div>
+        <div class="url-row">
+          <input type="text" id="wpWebUrl" placeholder="粘贴 http/https 网页地址，或点右边选本地 HTML 文件">
+          <button class="btn small" id="btnWpWebUrl">应用网址</button>
+          <button class="btn small" id="btnWpWebFile">选本地 HTML</button>
+          <button class="btn small" id="btnWpWebClear">清除</button>
+          <input type="file" id="wpWebFile" accept=".html,.htm,text/html" hidden>
+        </div>
+        <div id="wpCustomList"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Steam 创意工坊（可选）</h2></div>
+        <div class="url-row">
+          <input type="text" id="wpWorkshopInput" placeholder="粘贴工坊链接或纯数字 ID">
+          <button class="btn small" id="btnWpLookup">读取工坊信息</button>
+          <button class="btn small" id="btnWpDownload">下载到软件</button>
+        </div>
+        <div id="wpWorkshopResult"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>本机小红车壁纸 <span class="counter" id="wpLocalTag">—</span></h2>
+          <div class="filter-row">
+            <input type="search" id="wpSearch" placeholder="搜索标题 / ID / 标签…">
+            <select id="wpKind"><option value="">全部类型</option><option value="web">网页（可触摸）</option><option value="video">视频</option><option value="image">图片</option><option value="scene">Scene</option><option value="other">其他</option></select>
+          </div>
+        </div>
+        <div class="wp-grid" id="wpList"><div class="loading">正在读取小红车壁纸…</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>已下载到软件 <span class="counter" id="wpDownloadedTag">—</span></h2></div>
+        <div class="wp-grid" id="wpDownloaded"></div>
+      </div>
+
+      <div class="card we-link">
+        <div class="card-head"><h2>与小红车联动（第一个任务的连接系统）</h2></div>
+        <ol>
+          <li>保持本软件运行（不要关掉命令行窗口）</li>
+          <li>在小红车里「添加壁纸 / 打开壁纸文件」，导入 <code>D:\MorseCodeTranslator\wallpaper-project\project.json</code></li>
+          <li>或把下面网址填进「网页壁纸」的 URL 栏</li>
+        </ol>
+        <div class="url-row"><code id="weUrl">http://127.0.0.1:18760/?wallpaper=1</code><button class="btn small" id="copyUrl">复制网址</button></div>
+        <p class="fine">翻译结果会自动同步到小红车壁纸，灯光按电码节拍闪烁。全部文件只在本机读取，不会运行任何 .exe 类型的壁纸。</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">摩斯电码工作台 · 本地服务 127.0.0.1 · 中文 ⇄ English ⇄ Morse · 小红车动态壁纸</footer>
+</div>
+
+<!-- 触摸模式悬浮条与事件 HUD（由脚本创建/控制） -->
+<div id="slWpTouchBar" hidden>
+  <span><b>触摸模式</b> · 现在可以直接点 / 拖 / 摸壁纸里的角色和物件</span>
+  <button type="button" id="slWpTouchExit">返回界面（Esc）</button>
+  <label><input type="checkbox" id="touchMouse" checked> 鼠标模拟触摸</label>
+  <label><input type="checkbox" id="touchRipple" checked> 触点光晕</label>
+  <label><input type="checkbox" id="touchHud" checked> 事件提示</label>
+  <span id="touchStats">等待触摸…</span>
+</div>
+
+<!-- ============ WALLPAPER MODE (for Wallpaper Engine from task #1) ============ -->
+<div id="wallpaperView" hidden>
+  <div class="wp-bg-grid"></div>
+  <div class="wp-glow" id="wpGlow"></div>
+  <div class="wp-content">
+    <div class="wp-top"><span class="wp-badge">MORSE CODE · LIVE</span><span class="wp-time" id="wpTime"></span></div>
+    <div class="wp-lamp" id="wpLamp"></div>
+    <div class="wp-code" id="wpCode">···· · ·−·· ·−·· −−− / ·−− −−− ·−· ·−·· −··</div>
+    <div class="wp-en" id="wpEn">HELLO WORLD</div>
+    <div class="wp-zh" id="wpZh">你好，世界</div>
+    <div class="wp-foot">在浏览器中翻译后，这里会自动同步 · <span id="wpStamp"></span></div>
+  </div>
+</div>
+
+<script src="morse.js"></script>
+<script src="dictionary.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

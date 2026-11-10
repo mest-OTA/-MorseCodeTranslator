@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "id": "818696361",
+  "src": "local",
+  "dim": 0,
+  "blur": 0,
+  "volume": 100,
+  "fit": "cover",
+  "ui": 42,
+  "crisp": true,
+  "customUrl": "",
+  "hiddenIds": []
+}
